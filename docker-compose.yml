@@ -1,0 +1,60 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: company-mono-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: company_mono
+      MYSQL_USER: app
+      MYSQL_PASSWORD: ${DB_PASSWORD:-app}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./deploy/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: company-mono-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/company_mono?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      DB_USERNAME: app
+      DB_PASSWORD: ${DB_PASSWORD:-app}
+      JWT_SECRET: ${JWT_SECRET:-company-mono-compose-secret-key-please-change-me-0123456789}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-120}
+      OTLP_TRACES_ENDPOINT: ${OTLP_TRACES_ENDPOINT:-http://host.docker.internal:4318/v1/traces}
+      OTLP_METRICS_ENDPOINT: ${OTLP_METRICS_ENDPOINT:-http://host.docker.internal:4318/v1/metrics}
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: company-mono-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mysql-data:

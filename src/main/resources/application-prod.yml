@@ -1,0 +1,33 @@
+# 生产环境配置：关键变量必须由部署环境注入，不提供默认值
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+  flyway:
+    # 生产禁止 clean，避免误删数据
+    clean-disabled: true
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+
+management:
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACES_ENDPOINT:http://otel-collector:4318/v1/traces}
+    metrics:
+      export:
+        url: ${OTLP_METRICS_ENDPOINT:http://otel-collector:4318/v1/metrics}
+
+logging:
+  level:
+    root: INFO
+    com.company.mono: INFO

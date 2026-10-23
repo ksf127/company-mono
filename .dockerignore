@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+*.iml
+target
+web/node_modules
+web/dist
+docs
+*.md
+.env
